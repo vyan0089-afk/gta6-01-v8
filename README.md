@@ -61,3 +61,5 @@ di Kota Lama. `garage.jpg` — repaint biru di garasi. `race.jpg` — Balap Jala
 - `vendor/makefun-game.ts` — library kit make.fun (byte-identik dengan kit)
 
 MIT License — lihat `LICENSE`.
+
+v8 — dibangun ulang dari nol dalam rekaman tersegel; semua baris ditulis langsung, tanpa kode yang disalin masuk.
