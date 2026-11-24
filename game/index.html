@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARUNIKA — Pulau Arunika</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0f14; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #eef1f5; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #hud { position: fixed; inset: 0; pointer-events: none; font-size: 13px; }
+  #hud.dim { opacity: 0.25; }
+  .panel { background: rgba(8, 12, 18, 0.72); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 8px 10px; backdrop-filter: blur(2px); }
+  /* Mission panel, top-left */
+  #mission-panel { position: absolute; top: 12px; left: 12px; width: 330px; border-left: 4px solid #ffd23f; }
+  #mission-title { font-weight: 800; font-size: 15px; letter-spacing: 0.5px; color: #ffd23f; }
+  #mission-brief { margin-top: 2px; color: #dfe6ee; }
+  #mission-objective { margin-top: 4px; color: #9be7ff; font-weight: 600; }
+  /* Money / clock / stars / rank, top-right */
+  #top-right { position: absolute; top: 12px; right: 12px; text-align: right; min-width: 210px; }
+  #money { font-size: 22px; font-weight: 800; color: #7dff9a; }
+  #clock { font-size: 14px; color: #cfe3ff; margin-top: 2px; }
+  #stars { font-size: 20px; letter-spacing: 2px; color: #ffd23f; margin-top: 2px; }
+  #stars.wanted-hot { color: #ff5347; text-shadow: 0 0 8px rgba(255,60,40,0.8); }
+  #rank { font-size: 13px; color: #ffb86b; font-weight: 700; }
+  /* Radio banner, top-centre */
+  #radio-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); color: #ffd23f; font-weight: 700; padding: 5px 14px; }
+  /* Dispatch feed, left */
+  #dispatch { position: absolute; top: 150px; left: 12px; width: 300px; display: none; }
+  #dispatch.show { display: block; }
+  #dispatch h4 { margin: 0 0 4px; font-size: 11px; letter-spacing: 1px; color: #7db8ff; }
+  .dispatch-line { font-size: 12px; color: #dbe7f5; margin-top: 3px; }
+  .dispatch-line b { color: #ff8a7a; }
+  /* Weapons, right */
+  #weapons { position: absolute; top: 150px; right: 12px; width: 150px; }
+  .weapon-slot { display: flex; gap: 6px; padding: 4px 6px; border-radius: 5px; margin-top: 3px; background: rgba(255,255,255,0.06); }
+  .weapon-slot.active { background: rgba(255,210,63,0.25); outline: 1px solid #ffd23f; }
+  .weapon-key { color: #ffd23f; font-weight: 800; }
+  .weapon-name { flex: 1; font-weight: 700; }
+  .weapon-ammo { color: #9be7ff; }
+  /* Crew cards, right below weapons */
+  #crew-cards { position: absolute; top: 300px; right: 12px; width: 190px; }
+  .crew-card { border-left: 4px solid var(--crew, #0ea5e9); background: rgba(8,12,18,0.72); border-radius: 6px; padding: 6px 8px; margin-top: 6px; }
+  .crew-card.cooling { opacity: 0.55; }
+  .crew-head { display: flex; justify-content: space-between; }
+  .crew-name { font-weight: 800; color: var(--crew, #0ea5e9); }
+  .crew-role { color: #9aa7b5; font-size: 11px; }
+  .crew-ability { font-weight: 700; font-size: 12px; margin-top: 2px; }
+  .crew-key { color: #ffd23f; }
+  .crew-desc { font-size: 11px; color: #b9c4d0; }
+  .crew-cd { font-size: 11px; color: #7dff9a; font-weight: 700; margin-top: 2px; }
+  /* Bottom-left: minimap + bars */
+  #bottom-left { position: absolute; left: 12px; bottom: 12px; }
+  #minimap { width: 200px; height: 200px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); display: block; }
+  .bar-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 11px; font-weight: 700; }
+  .bar { flex: 1; height: 10px; background: rgba(255,255,255,0.15); border-radius: 5px; overflow: hidden; }
+  .bar > div { height: 100%; }
+  #health-bar { background: #39d353; width: 100%; }
+  #armour-bar { background: #4aa8ff; width: 100%; }
+  #car-health-bar { background: #ff7a1a; width: 100%; }
+  #district { margin-top: 5px; color: #cfe3ff; font-weight: 700; }
+  /* Dialogue, bottom-centre */
+  #dialog { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 520px; padding: 10px 14px; display: none; border-left: 4px solid #ffd23f; }
+  #dialog.show { display: block; }
+  #dialog-speaker { font-weight: 800; letter-spacing: 1px; }
+  #dialog-text { margin-top: 2px; color: #eef1f5; }
+  /* Speedometer + radio, bottom-right */
+  #bottom-right { position: absolute; right: 12px; bottom: 12px; text-align: right; }
+  #speed { font-size: 44px; font-weight: 800; line-height: 1; }
+  #speed-unit { font-size: 13px; color: #9aa7b5; }
+  #radio-station { margin-top: 4px; color: #ffd23f; font-weight: 700; }
+  #controls-hint { margin-top: 4px; font-size: 11px; color: #9aa7b5; }
+  /* Centre banner + flash */
+  #banner { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; padding: 16px 30px; }
+  #banner.show { display: block; }
+  #banner-title { font-size: 30px; font-weight: 900; color: #ffd23f; letter-spacing: 1px; }
+  #banner-sub { font-size: 15px; color: #eef1f5; margin-top: 4px; }
+  #flash { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); color: #ff5347; font-weight: 800; font-size: 18px; text-shadow: 0 2px 6px rgba(0,0,0,0.8); display: none; }
+  #flash.show { display: block; }
+  /* Menu / pause / game over overlays */
+  .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: linear-gradient(160deg, rgba(10,20,35,0.88), rgba(40,15,5,0.82)); z-index: 10; }
+  .overlay.show { display: flex; }
+  .overlay-card { text-align: center; max-width: 640px; padding: 28px 36px; }
+  .overlay-card h1 { font-size: 64px; margin: 0; letter-spacing: 6px; color: #ff7a1a; text-shadow: 0 4px 24px rgba(255,122,26,0.5); }
+  .overlay-card h2 { margin: 4px 0 0; font-size: 17px; color: #ffd23f; letter-spacing: 3px; }
+  .overlay-card p { color: #dfe6ee; line-height: 1.5; }
+  .overlay-card button { pointer-events: auto; cursor: pointer; margin: 6px; padding: 12px 26px; font-size: 16px; font-weight: 800; border: none; border-radius: 8px; background: #ff7a1a; color: #111; }
+  .overlay-card button.secondary { background: #22303f; color: #eef1f5; }
+  #menu-save { color: #7dff9a; font-size: 13px; }
+  .keys { font-size: 12px; color: #9aa7b5; margin-top: 14px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="ARUNIKA: open-world crime di Pulau Arunika"></canvas>
+<p id="status" role="status" aria-live="polite"></p>
+
+<div id="hud">
+  <div id="mission-panel" class="panel">
+    <div id="mission-title">JOB 1 — SOPIR BARU</div>
+    <div id="mission-brief">Drive to the garage and meet the crew.</div>
+    <div id="mission-objective"></div>
+  </div>
+  <div id="top-right" class="panel">
+    <div id="money">$250</div>
+    <div id="clock">11:30</div>
+    <div id="stars">☆☆☆☆☆</div>
+    <div id="rank">ROOKIE • 0 RP</div>
+  </div>
+  <div id="radio-banner" class="panel">♪ SURYA 101.5 FM • Island Pop</div>
+
+  <div id="dispatch" class="panel"><h4>📻 APD DISPATCH</h4><div id="dispatch-list"></div></div>
+  <div id="weapons" class="panel"></div>
+  <div id="crew-cards"></div>
+
+  <div id="bottom-left">
+    <canvas id="minimap" width="200" height="200"></canvas>
+    <div class="bar-row"><span id="health-text">HP 100</span><div class="bar"><div id="health-bar"></div></div></div>
+    <div class="bar-row"><span id="armour-text">ARMOUR 50</span><div class="bar"><div id="armour-bar"></div></div></div>
+    <div class="bar-row"><span id="car-health">MOBIL 100% • ORANYE</span><div class="bar"><div id="car-health-bar"></div></div></div>
+    <div id="district">Pusat Kota • JALAN KAKI</div>
+  </div>
+
+  <div id="dialog" class="panel"><div id="dialog-speaker">SARI</div><div id="dialog-text"></div></div>
+
+  <div id="bottom-right">
+    <div><span id="speed">0</span> <span id="speed-unit">KM/H</span></div>
+    <div id="radio-station">SURYA 101.5 FM — Island Pop</div>
+    <div id="controls-hint">WASD jalan/kemudi • E masuk mobil • G garasi • Z/X/C crew • M radio • F5 save</div>
+  </div>
+
+  <div id="banner" class="panel"><div id="banner-title"></div><div id="banner-sub"></div></div>
+  <div id="flash"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="overlay-card">
+    <h1>ARUNIKA</h1>
+    <h2>PULAU ARUNIKA • KOTA ARUNIKA</h2>
+    <p>Reza baru keluar dari penjara dan pulau ini milik siapa saja yang berani mengambilnya.
+    Sepuluh job, lima bintang wanted, satu mahkota. APD mengawasi setiap jalan —
+    tapi Sari, Bayu dan Lia selalu satu panggilan jauhnya.</p>
+    <p id="menu-save"></p>
+    <button id="start-btn">MULAI — JOB 1</button>
+    <button id="continue-btn" class="secondary" style="display:none">LANJUTKAN SAVE</button>
+    <div class="keys">WASD bergerak / mengemudi • Shift lari • Space handbrake • E masuk &amp; keluar mobil<br>
+    1–4 ganti senjata • Z Sari (plat) • X Bayu (perbaiki) • C Lia (mata-mata) • G garasi • M radio • F5 save • P jeda</div>
+  </div>
+</div>
+
+<div id="pause" class="overlay">
+  <div class="overlay-card">
+    <h1 style="font-size:44px">JEDA</h1>
+    <p>Arunika menunggumu, Reza.</p>
+    <button id="resume-btn">LANJUTKAN</button>
+  </div>
+</div>
+
+<div id="gameover" class="overlay">
+  <div class="overlay-card">
+    <h1 style="font-size:44px; color:#ff5347">TERTANGKAP</h1>
+    <p>APD akhirnya menangkap Reza. Tapi pulau ini tidak pernah lupa — coba lagi.</p>
+    <button id="restart-btn">COBA LAGI</button>
+  </div>
+</div>
+
+<script src="./vendor/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
